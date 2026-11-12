@@ -3,49 +3,46 @@
 int number_of_test = 0;
 int number_passed_test = 0;
 
-int test_str_int(char *a, int b)
+int test_str_int(char *instruction, char *got, int expected)
 {
+	char	buf[16];
+
 	number_of_test++;
-	if (atoi(a) == b)
+	snprintf(buf, sizeof(buf), "%d", expected);
+	if (got && !strcmp(got, buf))
 	{
 		number_passed_test++;
 		return (1);
 	}
-	else
-	{
-		printf(RED"\n\t\tKO"RESET"\tgot: >%d< but expected: >%s<\n", b, a);
-		return (0);
-	}
+	printf(RED"\n\t\tKO"RESET"\t"BLUE"%s:"RESET" got: >%s< but expected: >%s<\n",
+		instruction, got ? got : "(null)", buf);
+	return (0);
 }
 
-int test_int(int a, int b)
+int test_int(char *instruction, int expected, int got)
 {
 	number_of_test++;
-	if (a == b)
+	if (expected == got)
 	{
 		number_passed_test++;
 		return (1);
 	}
-	else
-	{
-		fprintf(stderr, RED"\n\t\tKO"RESET"\tgot: >%d< but expected: >%d<\n", b, a);
-		return (0);
-	}
+	printf(RED"\n\t\tKO"RESET"\t"BLUE"%s:"RESET" got: >%d< but expected: >%d<\n",
+		instruction, got, expected);
+	return (0);
 }
 
-int test_string(char *a, char *b)
+int test_string(char *expected, char *got)
 {
 	number_of_test++;
-	if (!memcmp(a, b, strlen(a)))
+	if (expected && got && !strcmp(expected, got))
 	{
 		number_passed_test++;
 		return (1);
 	}
-	else
-	{
-		printf(RED"\n\t\tKO"RESET"\tgot: >%s< but expected: >%s<\n", b, a);
-		return (0);
-	}
+	printf(RED"\n\t\tKO"RESET"\tgot: >%s< but expected: >%s<\n",
+		got ? got : "(null)", expected ? expected : "(null)");
+	return (0);
 }
 
 void display_score(int score, int total)
@@ -99,9 +96,9 @@ static void output_close()
     fprintf(stderr, "output close:\t");
 
 	close (1);
-    int a = ft_printf("Begin of %s %.10d %c %#x %#x\n", "tests", 42, 115, 10, 10);
-    int b = printf("Begin of %s %.10d %c %#x %#x\n", "tests", 42, 115, 10, 10);
-    score += test_int(a, b);
+    int a = ft_printf("Begin of %s %d %c %x %x\n", "tests", 42, 115, 10, 10);
+    int b = printf("Begin of %s %d %c %x %x\n", "tests", 42, 115, 10, 10);
+    score += test_int("printf(\"Begin of %s %d %c %x %x\n\", \"tests\", 42, 115, 10, 10)", a, b);
 	display_score(score, 1);
 }
 

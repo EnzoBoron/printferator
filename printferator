@@ -56,9 +56,16 @@ else
 fi
 
 printf "Compile...\n\n"
-if ! make -s; then
-    printf "Can't compile, because error\n"
-	exit 1
+if [ "$third" -ge 1 ]; then
+	if ! make bonus -s; then
+		printf "Can't compile, because error\n"
+		exit 1
+	fi
+else
+	if ! make -s; then
+		printf "Can't compile, because error\n"
+		exit 1
+	fi
 fi
 
 printf "\n"
