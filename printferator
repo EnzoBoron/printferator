@@ -8,6 +8,39 @@ RED='\033[31m'
 dir=${1:-.}
 third=$2
 
+check_readme()
+{
+	readme="README.md"
+
+	if [ ! -f "$readme" ]; then
+		printf "${RED}README.md absent\n\n${RESET}"
+		return 1
+	fi
+
+	ok=1
+
+	# Première ligne en italique : *texte* ou _texte_
+	if ! head -n 1 "$readme" | tr -d '\r' | grep -qE '^(\*[^*].*[^*]\*|_[^_].*[^_]_)[[:space:]]*$'; then
+		printf "${RED}La première ligne n'est pas en italique\n${RESET}"
+		ok=0
+	fi
+
+	# Chapitres obligatoires (titres markdown : #, ##, ###...)
+	for section in "Description" "Instructions" "Resources"; do
+		if ! grep -qiE "^#+[[:space:]]*${section}" "$readme"; then
+			printf "${RED}Chapitre manquant : ${section}\n${RESET}"
+			ok=0
+		fi
+	done
+
+	if [ "$ok" -eq 1 ]; then
+		printf "${GREEN}Readme correct\n\n${RESET}"
+		return 0
+	fi
+	printf "\n"
+	return 1
+}
+
 if [ ! -d "$dir" ] || [ -z "$third" ]; then
     printf "Usage: %s [dossier] [number]\n" "$0"
 	printf "[number]:\n"
@@ -54,6 +87,8 @@ if [ -n "$files" ]; then
 else
     printf "${GREEN}No Forbidden files\n\n${RESET}"
 fi
+
+check_readme
 
 printf "Compile...\n\n"
 if [ "$third" -ge 1 ]; then
