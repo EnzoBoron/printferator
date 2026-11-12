@@ -3,6 +3,53 @@
 int number_of_test = 0;
 int number_passed_test = 0;
 
+static char	escape_char(char c)
+{
+	if (c == '\n')
+		return ('n');
+	if (c == '\t')
+		return ('t');
+	if (c == '\v')
+		return ('v');
+	if (c == '\r')
+		return ('r');
+	if (c == '\f')
+		return ('f');
+	return (0);
+}
+
+char	*escape(const char *str)
+{
+	char	*res;
+	int		i;
+	int		j;
+
+	if (!str)
+		return (NULL);
+	i = 0;
+	j = 0;
+	while (str[i])
+		j += 1 + (escape_char(str[i++]) != 0);
+	res = malloc(j + 1);
+	if (!res)
+		return (NULL);
+	i = 0;
+	j = 0;
+	while (str[i])
+	{
+		if (escape_char(str[i]))
+		{
+			res[j++] = '\\';
+			res[j++] = escape_char(str[i]);
+		}
+		else
+			res[j++] = str[i];
+		i++;
+	}
+	res[j] = '\0';
+	return (res);
+}
+
 int test_str_int(char *instruction, char *got, int expected)
 {
 	char	buf[16];
@@ -15,7 +62,7 @@ int test_str_int(char *instruction, char *got, int expected)
 		return (1);
 	}
 	printf(RED"\n\t\tKO"RESET"\t"BLUE"%s:"RESET" got: >%s< but expected: >%s<\n",
-		instruction, got ? got : "(null)", buf);
+		instruction, got ? escape(got) : "(null)", buf);
 	return (0);
 }
 
@@ -41,7 +88,7 @@ int test_string(char *expected, char *got)
 		return (1);
 	}
 	printf(RED"\n\t\tKO"RESET"\tgot: >%s< but expected: >%s<\n",
-		got ? got : "(null)", expected ? expected : "(null)");
+		got ? escape(got) : "(null)", expected ? escape(expected) : "(null)");
 	return (0);
 }
 

@@ -76,7 +76,7 @@ static void basic_percentage_s()
     free(str);
 
     capture_start();
-    a = ft_printf("%s %s %s %s\n", "hello", "my", "frien", NULL);
+    a = ft_printf("%s %s %s %s\n", "hello", "my", "friend", NULL);
     str = capture_end(&l);
     score += test_int("ft_printf(\"%s %s %s %s\\n\", \"hello\", \"my\", \"friend\", NULL)", 23, a);
     score += test_string("hello my friend (null)\n", str);
