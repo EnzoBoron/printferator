@@ -36,7 +36,7 @@ int test_int(int a, int b)
 int test_string(char *a, char *b)
 {
 	number_of_test++;
-	if (!ft_memcmp(a, b, ft_strlen(a)))
+	if (!memcmp(a, b, strlen(a)))
 	{
 		number_passed_test++;
 		return (1);

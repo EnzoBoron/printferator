@@ -17,18 +17,18 @@ if [ ! -d "$dir" ] || [ -z "$third" ]; then
     exit 1
 fi
 
-printf '%s\n' "-----------------------------------------------------------"
-printf '%s\n' "#-----#####-####--#####-#####-####---###--#####--###--####-"
-printf '%s\n' "#-------#---#---#-#-------#---#---#-#---#---#---#---#-#---#"
-printf '%s\n' "#-------#---####--####----#---####--#####---#---#---#-####-"
-printf '%s\n' "#-------#---#---#-#-------#---#--#--#---#---#---#---#-#--#-"
-printf '%s\n' "#####-#####-####--#-------#---#---#-#---#---#----###--#---#"
-printf '%s\n\n\n' "-----------------------------------------------------------"
+printf '%s\n' "-----------------------------------------------------------------------"
+printf '%s\n' "####--####--#####-#---#-#####-#####-#####-####---###--#####--###--####-"
+printf '%s\n' "#---#-#---#---#---##--#---#---#-----#-----#---#-#---#---#---#---#-#---#"
+printf '%s\n' "####--####----#---#-#-#---#---####--####--####--#####---#---#---#-####-"
+printf '%s\n' "#-----#--#----#---#--##---#---#-----#-----#--#--#---#---#---#---#-#--#-"
+printf '%s\n' "#-----#---#-#####-#---#---#---#-----#####-#---#-#---#---#----###--#---#"
+printf '%s\n\n\n' "-----------------------------------------------------------------------"
 
 rm -rf ft_printf
 mkdir -p ft_printf
-cp -r "$dir"/. ./ft_printf/ || exit 1
-cd ft_printf/
+
+cd "$dir"/
 
 # Chech th norm errors
 printf "Norminette...\n"
@@ -55,13 +55,21 @@ else
     printf "${GREEN}No Forbidden files\n\n${RESET}"
 fi
 
-printf "Compile...\n"
+printf "Compile...\n\n"
 if ! make -s; then
     printf "Can't compile, because error\n"
+	exit 1
 fi
 
 printf "\n"
 # Run test
-make re -s
-cc ../test/main.c ../test/basic.c ../test/bonus.c ../ft_printf/libftprintf.a -g3
+cd - > /dev/null
+cp -r "$dir"/libftprintf.a ./ft_printf/ || exit 1
+
+cc ./test/main.c ./test/basic.c ./test/bonus.c ./ft_printf/libftprintf.a -g3
 ./a.out "$third"
+
+rm -rf ft_printf
+
+cd "$dir"/
+make fclean -s

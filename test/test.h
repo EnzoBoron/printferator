@@ -4,7 +4,9 @@
 # include <stdio.h>
 # include <string.h>
 # include <limits.h>
-# include "../ft_printf/includes/ft_printf.h"
+# include <stdlib.h>
+# include <unistd.h>
+// # include "../ft_printf/includes/ft_printf.h"
 
 # define GREEN "\033[32m"
 # define RED   "\033[31m"
@@ -19,5 +21,6 @@ void    basic();
 void	bonus();
 void    display_score(int score, int total);
 int		test_int(int a, int b);
+int		ft_printf(const char *format, ...);
 
 #endif /* _TEST_H_ */
