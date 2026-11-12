@@ -1,0 +1,67 @@
+#!/bin/sh
+
+GREY='\033[90m'
+RESET='\033[0m'
+GREEN='\033[32m'
+RED='\033[31m'
+
+dir=${1:-.}
+third=$2
+
+if [ ! -d "$dir" ] || [ -z "$third" ]; then
+    printf "Usage: %s [dossier] [number]\n" "$0"
+	printf "[number]:\n"
+	printf "	0: Basic tests\n"
+	printf "	1: Bonus tests\n"
+	printf "	2: basic and bonus tests\n\n"
+    exit 1
+fi
+
+printf '%s\n' "-----------------------------------------------------------"
+printf '%s\n' "#-----#####-####--#####-#####-####---###--#####--###--####-"
+printf '%s\n' "#-------#---#---#-#-------#---#---#-#---#---#---#---#-#---#"
+printf '%s\n' "#-------#---####--####----#---####--#####---#---#---#-####-"
+printf '%s\n' "#-------#---#---#-#-------#---#--#--#---#---#---#---#-#--#-"
+printf '%s\n' "#####-#####-####--#-------#---#---#-#---#---#----###--#---#"
+printf '%s\n\n\n' "-----------------------------------------------------------"
+
+rm -rf ft_printf
+mkdir -p ft_printf
+cp -r "$dir"/. ./ft_printf/ || exit 1
+cd ft_printf/
+
+# Chech th norm errors
+printf "Norminette...\n"
+errors=$( norminette | grep --color=never "Error")
+if [ -n "$errors" ]; then
+	printf "${GREY}"
+    printf "%s\n" "$errors" | awk -F' ' '{print $1, $2, $3, $4, $5, $6}' | tr ':' ' '
+    printf "${RESET}"
+    printf "\n${GREY}"
+else
+    printf "${GREEN}Correct\n\n${RESET}"
+fi
+
+# Check if they are forbidden files
+files=$(find . -path ./.git -prune -o -type f \
+    ! -name "*.c" ! -name "*.h" \
+    ! -name "Makefile" ! -name "README.md" \
+    -print | tr '\n' ' ')
+
+printf "Check Files...\n"
+if [ -n "$files" ]; then
+    printf "\nForbidden files found\n${GREY}%s${RESET}\n\n" "$files"
+else
+    printf "${GREEN}No Forbidden files\n\n${RESET}"
+fi
+
+printf "Compile...\n"
+if ! make -s; then
+    printf "Can't compile, because error\n"
+fi
+
+printf "\n"
+# Run test
+make re -s
+cc ../test/main.c ../test/basic.c ../test/bonus.c ../ft_printf/libftprintf.a -g3
+./a.out "$third"
