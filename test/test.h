@@ -6,6 +6,8 @@
 # include <limits.h>
 # include <stdlib.h>
 # include <unistd.h>
+# include <signal.h>
+#include <setjmp.h>
 
 # define GREEN "\033[32m"
 # define RED   "\033[31m"
@@ -13,8 +15,6 @@
 # define RESET "\033[0m"
 
 int     test_buf(char *expected, int le, char *got, int lg, const char *call);
-int		test_str_int(char *instruction, char *a, int b);
-int     test_string(char *a, char *b);
 void	capture_start(void);
 char	*capture_end(int *len);
 void    basic();
@@ -22,13 +22,22 @@ void	bonus();
 void    display_score(int score, int total);
 int		test_int(char *instruction, int a, int b);
 int		ft_printf(const char *format, ...);
-void	print_escaped(const char *s, int len);
+void	report_crash(const char *call);
+
+extern sigjmp_buf				g_jmp;
+extern volatile sig_atomic_t	g_in_test;
 
 #define T(...) do { \
-	int _a, _b, _la, _lb; \
+	volatile int _a = -1; \
+	int _b, _la, _lb; \
 	char *_s, *_r; \
 	capture_start(); \
-	_a = ft_printf(__VA_ARGS__); \
+	g_in_test = 1; \
+	if (sigsetjmp(g_jmp, 1) == 0) \
+		_a = ft_printf(__VA_ARGS__); \
+	else \
+		report_crash(#__VA_ARGS__); \
+	g_in_test = 0; \
 	_s = capture_end(&_la); \
 	capture_start(); \
 	_b = printf(__VA_ARGS__); \

@@ -3,7 +3,7 @@
 int	number_of_test = 0;
 int	number_passed_test = 0;
 
-void	print_escaped(const char *s, int len)
+static void	print_escaped(const char *s, int len)
 {
 	for (int i = 0; i < len; i++)
 	{
@@ -20,58 +20,45 @@ void	print_escaped(const char *s, int len)
 	}
 }
 
-static char	escape_char(char c)
-{
-	if (c == '\n')
-		return ('n');
-	if (c == '\t')
-		return ('t');
-	if (c == '\v')
-		return ('v');
-	if (c == '\r')
-		return ('r');
-	if (c == '\f')
-		return ('f');
-	return (0);
-}
-
-static char	*escape(const char *str)
-{
-	char	*res;
-	int		i;
-	int		j;
-
-	if (!str)
-		return (NULL);
-	i = 0;
-	j = 0;
-	while (str[i])
-		j += 1 + (escape_char(str[i++]) != 0);
-	res = malloc(j + 1);
-	if (!res)
-		return (NULL);
-	i = 0;
-	j = 0;
-	while (str[i])
-	{
-		if (escape_char(str[i]))
-		{
-			res[j++] = '\\';
-			res[j++] = escape_char(str[i]);
-		}
-		else
-			res[j++] = str[i];
-		i++;
-	}
-	res[j] = '\0';
-	return (res);
-}
-
 static int	g_return_ko = 0;
+
+sigjmp_buf						g_jmp;
+volatile sig_atomic_t			g_in_test = 0;
+static volatile sig_atomic_t	g_signal = 0;
+static int						g_crashed = 0;
+
+static void	print_segfault(int sig)
+{
+	if (!g_in_test)
+	{
+		signal(sig, SIG_DFL);
+		raise(sig);
+		return ;
+	}
+	g_signal = sig;
+	siglongjmp(g_jmp, 1);
+}
+
+void	report_crash(const char *call)
+{
+	const char	*name;
+
+	if (g_signal == SIGBUS)
+		name = "Bus error";
+	else if (g_signal == SIGABRT)
+		name = "Abort";
+	else
+		name = "Segmentation fault";
+	g_crashed = 1;
+	fprintf(stderr, RED"\n\t\tKO"RESET"\t"BLUE"%s:"RESET" ft_printf(%s)\n",
+		name, call);
+}
 
 int	test_int(char *instruction, int expected, int got)
 {
 	number_of_test++;
+	if (g_crashed)
+		return (0);
 	g_return_ko = (expected != got);
 	if (expected == got)
 	{
@@ -88,6 +75,11 @@ int	test_buf(char *expected, int le, char *got, int lg, const char *call)
 	int	return_ko;
 
 	number_of_test++;
+	if (g_crashed)
+	{
+		g_crashed = 0;
+		return (0);
+	}
 	return_ko = g_return_ko;
 	g_return_ko = 0;
 	if (le == lg && !memcmp(expected, got, le))
@@ -103,45 +95,6 @@ int	test_buf(char *expected, int le, char *got, int lg, const char *call)
 	printf("< (%d)\n\t\t\texpected: >", lg);
 	print_escaped(expected, le);
 	printf("< (%d)\n", le);
-	return (0);
-}
-
-int	test_string(char *expected, char *got)
-{
-	char	*e;
-	char	*g;
-
-	number_of_test++;
-	if (expected && got && !strcmp(expected, got))
-	{
-		number_passed_test++;
-		return (1);
-	}
-	e = escape(expected);
-	g = escape(got);
-	printf(RED"\n\t\t"RESET"\tgot: >%s< but expected: >%s<\n",
-		g ? g : "(null)", e ? e : "(null)");
-	free(e);
-	free(g);
-	return (0);
-}
-
-int	test_str_int(char *instruction, char *got, int expected)
-{
-	char	buf[16];
-	char	*g;
-
-	number_of_test++;
-	snprintf(buf, sizeof(buf), "%d", expected);
-	if (got && !strcmp(got, buf))
-	{
-		number_passed_test++;
-		return (1);
-	}
-	g = escape(got);
-	printf(RED"\n\t\t"RESET"\t"BLUE"%s:"RESET" got: >%s< but expected: >%s<\n",
-		instruction, g ? g : "(null)", buf);
-	free(g);
 	return (0);
 }
 
@@ -189,29 +142,43 @@ char	*capture_end(int *len)
 
 static void	output_close(void)
 {
-	int	score = 0;
-	int	a, b;
+	int				score = 0;
+	volatile int	a = -1;
+	int				b;
 
 	fprintf(stderr, "Output close:\t");
 	close(STDOUT_FILENO);
-	a = ft_printf("Begin of %s %d %c %x %x\n", "tests", 42, 115, 10, 10);
+	g_in_test = 1;
+	if (sigsetjmp(g_jmp, 1) == 0)
+		a = ft_printf("Begin of %s %d %c %x %x\n", "tests", 42, 115, 10, 10);
+	else
+		report_crash("\"Begin of %s %d %c %x %x\\n\", \"tests\", 42, 115, 10, 10");
+	g_in_test = 0;
 	b = printf("Begin of %s %d %c %x %x\n", "tests", 42, 115, 10, 10);
 	score += test_int("ft_printf(\"Begin of %s %d %c %x %x\\n\", "
 		"\"tests\", 42, 115, 10, 10)", b, a);
+	g_crashed = 0;
 	display_score(score, 1);
 }
 
 static void	output_close_bonus(void)
 {
-	int	score = 0;
-	int	a, b;
+	int				score = 0;
+	volatile int	a = -1;
+	int				b;
 
 	fprintf(stderr, "Output close bonus:\t");
 	close(STDOUT_FILENO);
-	a = ft_printf("Begin of %.3s %010d %c %#x %#x\n", "tests", 42, 115, 10, 10);
+	g_in_test = 1;
+	if (sigsetjmp(g_jmp, 1) == 0)
+		a = ft_printf("Begin of %.3s %010d %c %#x %#x\n", "tests", 42, 115, 10, 10);
+	else
+		report_crash("\"Begin of %.3s %010d %c %#x %#x\\n\", \"tests\", 42, 115, 10, 10");
+	g_in_test = 0;
 	b = printf("Begin of %.3s %010d %c %#x %#x\n", "tests", 42, 115, 10, 10);
 	score += test_int("ft_printf(\"Begin of %.3s %010d %c %#x %#x\\n\", "
 		"\"tests\", 42, 115, 10, 10)", b, a);
+	g_crashed = 0;
 	display_score(score, 1);
 }
 
@@ -219,6 +186,9 @@ int	main(int ac, char **av)
 {
 	int	mode;
 
+	signal(SIGSEGV, print_segfault);
+	signal(SIGBUS, print_segfault);
+	signal(SIGABRT, print_segfault);
 	(void)ac;
 	mode = atoi(av[1]);
 	if (mode == 0)
