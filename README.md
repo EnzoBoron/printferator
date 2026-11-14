@@ -22,7 +22,7 @@ You can test the mandatory part, the bonus part, or both.
 ### Installation
 
 ```bash
-git clone <git@github.com:EnzoBoron/printferator.git>
+git clone git@github.com:EnzoBoron/printferator.git
 cd printferator
 ```
 
