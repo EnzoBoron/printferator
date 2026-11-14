@@ -1,5 +1,7 @@
 *This project has been created as part of the 42 curriculum by eboron.*
 
+![printferator](assets/banner.png)
+
 # printferator
 
 ## Description
