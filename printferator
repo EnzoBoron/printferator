@@ -1,17 +1,69 @@
 #!/bin/sh
 
 GREY='\033[90m'
-RESET='\033[0m'
 GREEN='\033[32m'
 RED='\033[31m'
+RESET='\033[0m'
 
-dir=${1:-.}
-third=$2
+project_dir=${1:-.}
+mode=$2
+tester_dir=$(cd "$(dirname "$0")" && pwd)
+
+usage()
+{
+	printf "Usage: make [a | b | c]\n"
+	printf "	a: Basic tests\n"
+	printf "	b: Bonus tests\n"
+	printf "	c: Basic and bonus tests\n\n"
+}
+
+print_banner()
+{
+	printf '%s\n' "-----------------------------------------------------------------------"
+	printf '%s\n' "####--####--#####-#---#-#####-#####-#####-####---###--#####--###--####-"
+	printf '%s\n' "#---#-#---#---#---##--#---#---#-----#-----#---#-#---#---#---#---#-#---#"
+	printf '%s\n' "####--####----#---#-#-#---#---####--####--####--#####---#---#---#-####-"
+	printf '%s\n' "#-----#--#----#---#--##---#---#-----#-----#--#--#---#---#---#---#-#--#-"
+	printf '%s\n' "#-----#---#-#####-#---#---#---#-----#####-#---#-#---#---#----###--#---#"
+	printf '%s\n\n\n' "-----------------------------------------------------------------------"
+}
+
+check_norm()
+{
+	printf "Norminette...\n"
+	if ! command -v norminette > /dev/null 2>&1; then
+		printf "${GREY}norminette introuvable, verification ignoree\n\n${RESET}"
+		return
+	fi
+	errors=$(norminette | grep --color=never "Error")
+	if [ -n "$errors" ]; then
+		printf "${GREY}"
+		printf "%s\n" "$errors" | awk '{print $1, $2, $3, $4, $5, $6}' | tr ':' ' '
+		printf "${RESET}\n"
+	else
+		printf "${GREEN}Correct\n\n${RESET}"
+	fi
+}
+
+check_files()
+{
+	printf "Check Files...\n"
+	files=$(find . -path ./.git -prune -o -type f \
+		! -name "*.c" ! -name "*.h" \
+		! -name "Makefile" ! -name "README.md" ! -name ".gitignore" \
+		-print | tr '\n' ' ')
+	if [ -n "$files" ]; then
+		printf "\nForbidden files found\n${GREY}%s${RESET}\n\n" "$files"
+	else
+		printf "${GREEN}No Forbidden files\n\n${RESET}"
+	fi
+}
 
 check_readme()
 {
 	readme="README.md"
 
+	printf "Check README...\n"
 	if [ ! -f "$readme" ]; then
 		printf "${RED}README.md absent\n\n${RESET}"
 		return 1
@@ -19,9 +71,10 @@ check_readme()
 
 	ok=1
 
-	# Première ligne en italique : *texte* ou _texte_
-	if ! head -n 1 "$readme" | tr -d '\r' | grep -qE '^(\*[^*].*[^*]\*|_[^_].*[^_]_)[[:space:]]*$'; then
-		printf "${RED}La première ligne n'est pas en italique\n${RESET}"
+	# Premiere ligne en italique : *texte* ou _texte_
+	if ! head -n 1 "$readme" | tr -d '\r' \
+		| grep -qE '^(\*[^*].*[^*]\*|_[^_].*[^_]_)[[:space:]]*$'; then
+		printf "${RED}La premiere ligne n'est pas en italique\n${RESET}"
 		ok=0
 	fi
 
@@ -41,77 +94,58 @@ check_readme()
 	return 1
 }
 
-if [ ! -d "$dir" ] || [ -z "$third" ]; then
-    printf "Usage: %s [dossier] [number]\n" "$0"
-	printf "[number]:\n"
-	printf "	0: Basic tests\n"
-	printf "	1: Bonus tests\n"
-	printf "	2: basic and bonus tests\n\n"
-    exit 1
+compile_project()
+{
+	printf "Compile...\n\n"
+	if [ "$mode" -ge 1 ]; then
+		rule="bonus"
+	else
+		rule=""
+	fi
+	if ! make $rule -s; then
+		printf "${RED}Can't compile, because error\n${RESET}"
+		return 1
+	fi
+	printf "\n"
+}
+
+run_tests()
+{
+	mkdir -p ft_printf
+	cp "$project_dir"/libftprintf.a ./ft_printf/ || return 1
+	cc -Wno-format ./test/main.c ./test/basic.c ./test/bonus.c \
+		./ft_printf/libftprintf.a -g3 || return 1
+	./a.out "$mode"
+}
+
+clean_tester()
+{
+	rm -rf "$tester_dir"/ft_printf "$tester_dir"/a.out "$tester_dir"/a.out.dSYM
+}
+
+# Main
+
+if [ ! -d "$project_dir" ] || [ -z "$mode" ]; then
+	usage
+	exit 1
 fi
+project_dir=$(cd "$project_dir" && pwd)
 
-printf '%s\n' "-----------------------------------------------------------------------"
-printf '%s\n' "####--####--#####-#---#-#####-#####-#####-####---###--#####--###--####-"
-printf '%s\n' "#---#-#---#---#---##--#---#---#-----#-----#---#-#---#---#---#---#-#---#"
-printf '%s\n' "####--####----#---#-#-#---#---####--####--####--#####---#---#---#-####-"
-printf '%s\n' "#-----#--#----#---#--##---#---#-----#-----#--#--#---#---#---#---#-#--#-"
-printf '%s\n' "#-----#---#-#####-#---#---#---#-----#####-#---#-#---#---#----###--#---#"
-printf '%s\n\n\n' "-----------------------------------------------------------------------"
+print_banner
+clean_tester
 
-rm -rf ft_printf
-mkdir -p ft_printf
-
-cd "$dir"/
-
-# Chech th norm errors
-printf "Norminette...\n"
-errors=$( norminette | grep --color=never "Error")
-if [ -n "$errors" ]; then
-	printf "${GREY}"
-    printf "%s\n" "$errors" | awk -F' ' '{print $1, $2, $3, $4, $5, $6}' | tr ':' ' '
-    printf "${RESET}"
-    printf "\n${GREY}"
-else
-    printf "${GREEN}Correct\n\n${RESET}"
-fi
-
-# Check if they are forbidden files
-files=$(find . -path ./.git -prune -o -type f \
-    ! -name "*.c" ! -name "*.h" \
-    ! -name "Makefile" ! -name "README.md" \
-    -print | tr '\n' ' ')
-
-printf "Check Files...\n"
-if [ -n "$files" ]; then
-    printf "\nForbidden files found\n${GREY}%s${RESET}\n\n" "$files"
-else
-    printf "${GREEN}No Forbidden files\n\n${RESET}"
-fi
-
+cd "$project_dir" || exit 1
+check_norm
+check_files
 check_readme
-
-printf "Compile...\n\n"
-if [ "$third" -ge 1 ]; then
-	if ! make bonus -s; then
-		printf "Can't compile, because error\n"
-		exit 1
-	fi
-else
-	if ! make -s; then
-		printf "Can't compile, because error\n"
-		exit 1
-	fi
+if ! compile_project; then
+	make fclean -s
+	exit 1
 fi
 
-printf "\n"
-# Run test
-cd - > /dev/null
-cp -r "$dir"/libftprintf.a ./ft_printf/ || exit 1
+cd "$tester_dir" || exit 1
+run_tests
+clean_tester
 
-cc ./test/main.c ./test/basic.c ./test/bonus.c ./ft_printf/libftprintf.a -g3
-./a.out "$third"
-
-rm -rf ft_printf
-
-cd "$dir"/
+cd "$project_dir" || exit 1
 make fclean -s
